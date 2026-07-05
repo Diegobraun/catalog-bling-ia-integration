@@ -51,6 +51,7 @@ public class ImageProcessingService {
         BufferedImage redimensionada = Thumbnails.of(origem)
                 .size(alvo, alvo)
                 .keepAspectRatio(true)
+                .imageType(BufferedImage.TYPE_INT_ARGB)
                 .asBufferedImage();
 
         BufferedImage canvas = new BufferedImage(LADO_ALVO, LADO_ALVO, BufferedImage.TYPE_INT_RGB);

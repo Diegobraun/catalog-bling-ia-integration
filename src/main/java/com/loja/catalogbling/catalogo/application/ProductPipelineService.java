@@ -72,8 +72,7 @@ public class ProductPipelineService {
         repo.save(produto);
 
         try {
-            aplicarPesquisa(produto, pesquisa.pesquisar(entrada),
-                    descricaoParaVerificacao(entrada), entrada.nome());
+            aplicarPesquisa(produto, pesquisa.pesquisar(entrada), entrada.nome());
         } catch (Exception e) {
             produto.setDadosBrutos(produto.getDadosBrutos()
                     + "\n\n[Falha na pesquisa automática: " + e.getMessage() + "]");
@@ -217,7 +216,7 @@ public class ProductPipelineService {
         return produto;
     }
 
-    private void aplicarPesquisa(Product produto, PesquisaDeProduto resultado, String descricao, String nomeOuLink) {
+    private void aplicarPesquisa(Product produto, PesquisaDeProduto resultado, String nomeOuLink) {
         if (resultado.dadosBrutos() != null) {
             produto.setDadosBrutos(resultado.dadosBrutos());
         }
@@ -235,10 +234,13 @@ public class ProductPipelineService {
         }
         repo.save(produto);
 
-        String cor = corParaBusca(descricao);
+        String cor = corDoNome(nomeOuLink);
+        String descricao = descricaoImagem(produto, nomeOuLink);
+
         List<String> paginas = new ArrayList<>();
-        if (ehLink(nomeOuLink)) {
-            paginas.add(nomeOuLink.strip());
+        String url = extrairUrl(nomeOuLink);
+        if (url != null) {
+            paginas.add(url);
         }
         paginas.addAll(downloads.buscarPaginasProduto(consultaMarketplace(produto, cor), MAX_PAGINAS_MARKETPLACE));
         if (resultado.paginas() != null) {
@@ -304,15 +306,40 @@ public class ProductPipelineService {
         }
     }
 
-    private String descricaoParaVerificacao(PesquisaEntrada entrada) {
-        if (entrada.nome() != null && !entrada.nome().isBlank()
-                && !entrada.nome().strip().toLowerCase().startsWith("http")) {
-            return entrada.nome().strip();
+    private String descricaoImagem(Product produto, String nomeOuLink) {
+        if (nomeOuLink != null && !nomeOuLink.isBlank() && !ehLink(nomeOuLink)) {
+            return nomeOuLink.strip();
         }
-        return java.util.stream.Stream.of(entrada.tipo(), entrada.marca(), entrada.modelo())
+        return java.util.stream.Stream.of(produto.getMarca(), produto.getModelo(), produto.getCategoria())
                 .filter(v -> v != null && !v.isBlank())
                 .map(String::strip)
                 .collect(java.util.stream.Collectors.joining(" "));
+    }
+
+    private String extrairUrl(String texto) {
+        if (texto == null) {
+            return null;
+        }
+        for (String token : texto.strip().split("\\s+")) {
+            if (token.toLowerCase().startsWith("http")) {
+                return token;
+            }
+        }
+        return null;
+    }
+
+    private String corDoNome(String nomeOuLink) {
+        if (nomeOuLink == null) {
+            return "";
+        }
+        StringBuilder digitado = new StringBuilder();
+        for (String token : nomeOuLink.strip().split("\\s+")) {
+            if (!token.toLowerCase().startsWith("http")) {
+                digitado.append(token).append(' ');
+            }
+        }
+        String cor = corParaBusca(digitado.toString());
+        return cor.isBlank() ? corParaBusca(nomeOuLink) : cor;
     }
 
     private void aplicar(Product produto, ConteudoGerado gerado) {
