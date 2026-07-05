@@ -13,7 +13,7 @@ Requires JDK 21 and Maven.
 ```bash
 mvn spring-boot:run     # run the app at http://localhost:8080
 mvn package             # build
-mvn test                # (there is no src/test yet)
+mvn test                # unit + integration tests (JUnit 5, Mockito, MockWebServer) — run on JDK 21
 ```
 
 Runtime needs env vars: `BLING_CLIENT_ID`, `BLING_CLIENT_SECRET`, `APP_PUBLIC_BASE_URL` (a publicly reachable URL — Bling downloads the product image from it; in dev use an ngrok tunnel), and the key for the selected AI provider (`ANTHROPIC_API_KEY` or `GEMINI_API_KEY`; Ollama needs no key). Provider selection: `IA_PROVIDER` (content: claude|gemini|ollama, default claude) and `IA_PESQUISA_PROVIDER` (web research: claude|gemini, default claude — Ollama has no web search). Defaults live in `src/main/resources/application.yml`; typed config records are in `config/` (`@ConfigurationProperties`).
