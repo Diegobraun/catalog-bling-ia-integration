@@ -54,17 +54,19 @@ public class ImageDownloadService {
             Pattern.compile("https://images\\d*\\.kabum\\.com\\.br/produtos/fotos/[\\w/.\\-]+?\\.(?:jpe?g|png|webp)"),
             Pattern.compile("https://http2\\.mlstatic\\.com/D_[\\w/.\\-]+?\\.(?:jpe?g|png|webp)"),
             Pattern.compile("https://m\\.media-amazon\\.com/images/I/[\\w/.\\-]+?\\.(?:jpe?g|png|webp)"),
-            Pattern.compile("https://[\\w.\\-]*mlcdn\\.com\\.br/[\\w/.\\-]+?\\.(?:jpe?g|png|webp)")
+            Pattern.compile("https://[\\w.\\-]*mlcdn\\.com\\.br/[\\w/.\\-]+?\\.(?:jpe?g|png|webp)"),
+            Pattern.compile("https?://[\\w.\\-]+/[^\"'\\s\\\\]*,[^\"'\\s\\\\]*\\.(?:jpe?g|png|webp)")
     };
 
-    // galeria completa de JSON-LD: "image": [ "url1", "url2", ... ] (URLs podem ter vírgulas/params)
     private static final Pattern JSONLD_IMAGE_ARRAY =
             Pattern.compile("\"image\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
     private static final Pattern URL_IMAGEM_ASPAS =
             Pattern.compile("\"(https?://[^\"]+?\\.(?:jpe?g|png|webp)[^\"]*)\"");
+    private static final Pattern SCENE7 =
+            Pattern.compile("https?://[\\w.\\-]+/is/image/[^\"'\\s\\\\)?]+");
 
     public List<ImagemBaixada> baixarCandidatas(List<String> urlsDiretas, List<String> paginas,
-                                                int maxTotal, int maxPorPagina) {
+                                                Set<String> coresExcluir, int maxTotal, int maxPorPagina) {
         List<ImagemBaixada> candidatas = new ArrayList<>();
         Set<String> vistos = new HashSet<>();
 
@@ -86,7 +88,7 @@ public class ImageDownloadService {
                     break;
                 }
                 int daPagina = 0;
-                for (String url : imagensDaPagina(pagina)) {
+                for (String url : imagensDaPagina(pagina, coresExcluir)) {
                     if (candidatas.size() >= maxTotal || daPagina >= maxPorPagina) {
                         break;
                     }
@@ -139,7 +141,7 @@ public class ImageDownloadService {
         return paginas;
     }
 
-    private List<String> imagensDaPagina(String pagina) {
+    private List<String> imagensDaPagina(String pagina, Set<String> coresExcluir) {
         List<String> urls = new ArrayList<>();
         try {
             byte[] corpo = baixar(pagina);
@@ -154,9 +156,42 @@ public class ImageDownloadService {
             for (Pattern padrao : CDN_GALERIA) {
                 acumular(padrao, html, urls);
             }
+            acumular(SCENE7, html, urls);
         } catch (Exception ignored) {
         }
-        return urls;
+        return filtrarCor(urls, coresExcluir);
+    }
+
+    private static final String[] LIXO = {
+            "navigation", "logo", "favicon", "sprite", "og-image", "og_image", "icon", "placeholder",
+            "gnb", "/menu"
+    };
+
+    private List<String> filtrarCor(List<String> urls, Set<String> coresExcluir) {
+        List<String> mantidas = new ArrayList<>();
+        for (String url : urls) {
+            if (!urlDescartavel(url, coresExcluir)) {
+                mantidas.add(url);
+            }
+        }
+        return mantidas;
+    }
+
+    private boolean urlDescartavel(String url, Set<String> coresExcluir) {
+        String u = url.toLowerCase();
+        for (String lixo : LIXO) {
+            if (u.contains(lixo)) {
+                return true;
+            }
+        }
+        if (coresExcluir != null && !coresExcluir.isEmpty()) {
+            for (String token : u.split("[^a-z]+")) {
+                if (coresExcluir.contains(token)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void acumularGaleriaJsonLd(String html, List<String> urls) {

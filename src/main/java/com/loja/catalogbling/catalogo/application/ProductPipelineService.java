@@ -21,15 +21,17 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ProductPipelineService {
 
-    private static final int MAX_IMAGENS_PESQUISA = 5;
-    private static final int MAX_IMAGENS_CANDIDATAS = 12;
-    private static final int MAX_IMAGENS_POR_PAGINA = 6;
+    private static final int MAX_IMAGENS_PESQUISA = 8;
+    private static final int MAX_IMAGENS_CANDIDATAS = 16;
+    private static final int MAX_IMAGENS_POR_PAGINA = 10;
     private static final int MAX_PAGINAS_MARKETPLACE = 3;
 
     private final ProductRepository repo;
@@ -248,7 +250,7 @@ public class ProductPipelineService {
         }
 
         List<ImageDownloadService.ImagemBaixada> candidatas = downloads.baixarCandidatas(
-                resultado.imagens(), paginas,
+                resultado.imagens(), paginas, coresParaExcluir(cor),
                 MAX_IMAGENS_CANDIDATAS, MAX_IMAGENS_POR_PAGINA);
         aplicarImagens(produto, candidatas, descricao, cor);
     }
@@ -275,6 +277,19 @@ public class ProductPipelineService {
 
     private boolean ehLink(String texto) {
         return texto != null && texto.strip().toLowerCase().startsWith("http");
+    }
+
+    private Set<String> coresParaExcluir(String cor) {
+        if (cor == null || cor.isBlank()) {
+            return Set.of();
+        }
+        Set<String> excluir = new HashSet<>();
+        for (Map.Entry<String, String> e : CORES.entrySet()) {
+            if (!e.getValue().equals(cor)) {
+                excluir.add(e.getKey());
+            }
+        }
+        return excluir;
     }
 
     private String corParaBusca(String texto) {
