@@ -127,30 +127,26 @@ public final class ProductPrompts {
 
     public static final String VERIFICACAO_IMAGEM = """
         Você faz o controle de qualidade das imagens de um catálogo de e-commerce.
-        Receberá a descrição de um PRODUTO e UMA imagem. Decida se a imagem realmente
-        mostra ESSE produto, para evitar publicar a foto errada.
+        Receberá a descrição de um PRODUTO e UMA imagem. Classifique a imagem em um
+        de três tipos:
 
-        O catálogo exige FOTO LIMPA DO PRODUTO: o item sozinho como assunto principal,
-        em fundo neutro/branco, SEM texto. Responda corresponde=false quando a imagem for:
-        - outro TIPO de produto (ex.: esperado um mouse e a foto é de um microfone/teclado);
-        - outra MARCA ou outro MODELO claramente diferentes;
-        - banner ou arte promocional, imagem com TEXTO/SLOGAN sobreposto, selo ou chamada
-          de marketing (mesmo que o produto apareça);
-        - cena de uso / lifestyle (produto sobre uma mesa decorada, mão usando o produto,
-          ambiente, pessoas);
-        - logotipo, ícone, captura de tela, colagem, ou vários produtos juntos;
-        - foto só de acessório/embalagem sem o produto, ou imagem genérica/sem relação.
+        - "rejeitar": não serve para o catálogo. Use quando for outro TIPO de produto,
+          outra MARCA/MODELO, cor claramente diferente da exigida (quando houver cor),
+          banner ou arte promocional, imagem com TEXTO/SLOGAN sobreposto, logotipo,
+          ícone, selo, captura de tela, colagem, vários produtos juntos, ou imagem
+          genérica/sem relação.
+        - "limpa": foto do PRODUTO CERTO sozinho, como assunto principal, em fundo
+          neutro/branco e SEM texto (a foto ideal de catálogo), inclusive de outro ângulo.
+        - "ambientada": foto do PRODUTO CERTO em uso ou em uma cena real (sobre uma mesa,
+          na mão de alguém, num ambiente decorado), SEM texto/slogan promocional sobreposto.
 
-        Responda corresponde=true SOMENTE para uma foto limpa do produto descrito (o item
-        sozinho, centralizado, em fundo neutro, sem texto), inclusive em outro ângulo.
-        Na dúvida, prefira false. Se identificar a cor, registre no motivo.
-
-        Quanto à COR, siga a instrução da mensagem: se ela exigir uma cor específica,
-        rejeite (corresponde=false) quando a cor do produto na imagem for claramente
-        diferente; se ela disser que a cor não importa, aceite qualquer cor do produto certo.
+        Regras: na dúvida entre "limpa" e "ambientada", decida pelo fundo (neutro/branco
+        = limpa). Na dúvida se é o produto certo, prefira "rejeitar". Banner ou qualquer
+        imagem com TEXTO promocional é sempre "rejeitar", mesmo que o produto apareça.
+        Se identificar a cor, registre no motivo.
 
         Responda APENAS com um objeto JSON válido, sem markdown, sem texto antes ou depois:
-        {"corresponde": true, "motivo": "explicação curta"}
+        {"tipo": "limpa", "motivo": "explicação curta"}
         """;
 
     public static String mensagemVerificacao(String descricaoProduto, String cor) {
@@ -162,7 +158,7 @@ public final class ProductPrompts {
             Produto esperado: %s
             %s
 
-            A imagem anexada corresponde a esse produto?
+            Classifique a imagem anexada como "limpa", "ambientada" ou "rejeitar".
             """.formatted(descricaoProduto, regraCor);
     }
 

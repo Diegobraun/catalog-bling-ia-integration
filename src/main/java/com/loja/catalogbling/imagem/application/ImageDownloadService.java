@@ -57,6 +57,12 @@ public class ImageDownloadService {
             Pattern.compile("https://[\\w.\\-]*mlcdn\\.com\\.br/[\\w/.\\-]+?\\.(?:jpe?g|png|webp)")
     };
 
+    // galeria completa de JSON-LD: "image": [ "url1", "url2", ... ] (URLs podem ter vírgulas/params)
+    private static final Pattern JSONLD_IMAGE_ARRAY =
+            Pattern.compile("\"image\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL);
+    private static final Pattern URL_IMAGEM_ASPAS =
+            Pattern.compile("\"(https?://[^\"]+?\\.(?:jpe?g|png|webp)[^\"]*)\"");
+
     public List<ImagemBaixada> baixarCandidatas(List<String> urlsDiretas, List<String> paginas,
                                                 int maxTotal, int maxPorPagina) {
         List<ImagemBaixada> candidatas = new ArrayList<>();
@@ -141,6 +147,7 @@ public class ImageDownloadService {
                 return urls;
             }
             String html = new String(corpo, StandardCharsets.UTF_8);
+            acumularGaleriaJsonLd(html, urls);
             for (Pattern padrao : META_IMAGEM) {
                 acumular(padrao, html, urls);
             }
@@ -150,6 +157,19 @@ public class ImageDownloadService {
         } catch (Exception ignored) {
         }
         return urls;
+    }
+
+    private void acumularGaleriaJsonLd(String html, List<String> urls) {
+        Matcher arrays = JSONLD_IMAGE_ARRAY.matcher(html);
+        while (arrays.find()) {
+            Matcher u = URL_IMAGEM_ASPAS.matcher(arrays.group(1));
+            while (u.find()) {
+                String url = melhorarResolucao(u.group(1).replace("\\u002F", "/").replace("\\/", "/"));
+                if (url.startsWith("http") && !urls.contains(url)) {
+                    urls.add(url);
+                }
+            }
+        }
     }
 
     private void acumular(Pattern padrao, String html, List<String> urls) {

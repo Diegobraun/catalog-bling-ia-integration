@@ -72,7 +72,8 @@ public class ProductPipelineService {
         repo.save(produto);
 
         try {
-            aplicarPesquisa(produto, pesquisa.pesquisar(entrada), descricaoParaVerificacao(entrada));
+            aplicarPesquisa(produto, pesquisa.pesquisar(entrada),
+                    descricaoParaVerificacao(entrada), entrada.nome());
         } catch (Exception e) {
             produto.setDadosBrutos(produto.getDadosBrutos()
                     + "\n\n[Falha na pesquisa automática: " + e.getMessage() + "]");
@@ -83,7 +84,7 @@ public class ProductPipelineService {
 
     @Transactional
     public ImageProcessingService.Resultado adicionarImagem(Product produto, byte[] arquivo) throws IOException {
-        ImageProcessingService.Resultado resultado = processamento.processar(arquivo);
+        ImageProcessingService.Resultado resultado = processamento.processar(arquivo, true);
         persistirImagem(produto, resultado);
         return resultado;
     }
@@ -91,11 +92,17 @@ public class ProductPipelineService {
     @Transactional
     public boolean adicionarImagemVerificada(Product produto, byte[] arquivo, String descricao, String cor)
             throws IOException {
-        ImageProcessingService.Resultado resultado = processamento.processar(arquivo);
-        String base64 = Base64.getEncoder().encodeToString(resultado.jpeg());
-        if (!verificacao.corresponde(descricao, cor, base64, "image/jpeg")) {
+        ImageProcessingService.Resultado semMargem = processamento.processar(arquivo, false);
+        String base64 = Base64.getEncoder().encodeToString(semMargem.jpeg());
+        VerificacaoImagemIaService.Classificacao classificacao =
+                verificacao.classificar(descricao, cor, base64, "image/jpeg");
+        if (classificacao == VerificacaoImagemIaService.Classificacao.REJEITAR) {
             return false;
         }
+        ImageProcessingService.Resultado resultado =
+                classificacao == VerificacaoImagemIaService.Classificacao.LIMPA
+                        ? processamento.processar(arquivo, true)
+                        : semMargem;
         persistirImagem(produto, resultado);
         return true;
     }
@@ -210,7 +217,7 @@ public class ProductPipelineService {
         return produto;
     }
 
-    private void aplicarPesquisa(Product produto, PesquisaDeProduto resultado, String descricao) {
+    private void aplicarPesquisa(Product produto, PesquisaDeProduto resultado, String descricao, String nomeOuLink) {
         if (resultado.dadosBrutos() != null) {
             produto.setDadosBrutos(resultado.dadosBrutos());
         }
@@ -229,8 +236,11 @@ public class ProductPipelineService {
         repo.save(produto);
 
         String cor = corParaBusca(descricao);
-        List<String> paginas = new ArrayList<>(
-                downloads.buscarPaginasProduto(consultaMarketplace(produto, cor), MAX_PAGINAS_MARKETPLACE));
+        List<String> paginas = new ArrayList<>();
+        if (ehLink(nomeOuLink)) {
+            paginas.add(nomeOuLink.strip());
+        }
+        paginas.addAll(downloads.buscarPaginasProduto(consultaMarketplace(produto, cor), MAX_PAGINAS_MARKETPLACE));
         if (resultado.paginas() != null) {
             paginas.addAll(resultado.paginas());
         }
@@ -259,6 +269,10 @@ public class ProductPipelineService {
                 .map(String::strip)
                 .collect(java.util.stream.Collectors.joining(" "));
         return cor == null || cor.isBlank() ? base : base + " " + cor;
+    }
+
+    private boolean ehLink(String texto) {
+        return texto != null && texto.strip().toLowerCase().startsWith("http");
     }
 
     private String corParaBusca(String texto) {

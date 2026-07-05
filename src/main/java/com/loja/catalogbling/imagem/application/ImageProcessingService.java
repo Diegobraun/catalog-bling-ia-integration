@@ -30,25 +30,26 @@ public class ImageProcessingService {
 
     public record Resultado(byte[] jpeg, int kb, boolean upscaleNecessario, boolean nitidezOk) {}
 
-    public Resultado processar(byte[] entrada) throws IOException {
+    public Resultado processar(byte[] entrada, boolean comMargem) throws IOException {
         BufferedImage original = ImageIO.read(new ByteArrayInputStream(entrada));
         if (original == null) {
             throw new IOException("Não foi possível ler a imagem (formato não suportado?).");
         }
         int largura = original.getWidth();
         int altura = original.getHeight();
+        int alvo = comMargem ? LADO_INTERNO : LADO_ALVO;
 
         double nitidez = varianciaLaplaciano(original);
-        boolean upscale = largura < LADO_INTERNO && altura < LADO_INTERNO;
+        boolean upscale = largura < alvo && altura < alvo;
 
-        byte[] jpeg = comprimirAte(encaixarEmQuadradoBranco(original), LIMITE_BYTES);
+        byte[] jpeg = comprimirAte(encaixarEmQuadradoBranco(original, alvo), LIMITE_BYTES);
 
         return new Resultado(jpeg, jpeg.length / 1024, upscale, nitidez >= NITIDEZ_MINIMA);
     }
 
-    private BufferedImage encaixarEmQuadradoBranco(BufferedImage origem) throws IOException {
+    private BufferedImage encaixarEmQuadradoBranco(BufferedImage origem, int alvo) throws IOException {
         BufferedImage redimensionada = Thumbnails.of(origem)
-                .size(LADO_INTERNO, LADO_INTERNO)
+                .size(alvo, alvo)
                 .keepAspectRatio(true)
                 .asBufferedImage();
 

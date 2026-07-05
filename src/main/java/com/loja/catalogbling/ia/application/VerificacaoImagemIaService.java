@@ -13,6 +13,8 @@ import java.util.List;
 @Service
 public class VerificacaoImagemIaService {
 
+    public enum Classificacao { LIMPA, AMBIENTADA, REJEITAR }
+
     private static final Logger log = LoggerFactory.getLogger(VerificacaoImagemIaService.class);
     private static final int MAX_TOKENS = 300;
 
@@ -23,9 +25,9 @@ public class VerificacaoImagemIaService {
         this.chat = chat;
     }
 
-    public boolean corresponde(String descricaoProduto, String cor, String imagemBase64, String mediaType) {
+    public Classificacao classificar(String descricaoProduto, String cor, String imagemBase64, String mediaType) {
         if (descricaoProduto == null || descricaoProduto.isBlank()) {
-            return true;
+            return Classificacao.LIMPA;
         }
         try {
             String resposta = chat.completarVolume(
@@ -34,18 +36,21 @@ public class VerificacaoImagemIaService {
                     new ChatIa.ImagemAnexa(imagemBase64, mediaType),
                     MAX_TOKENS);
             JsonNode n = json.readTree(RespostaJson.extrairObjeto(resposta));
-            boolean ok = n.path("corresponde").asBoolean(false);
-            if (!ok) {
+            String tipo = n.path("tipo").asText("").trim().toLowerCase();
+            Classificacao c = switch (tipo) {
+                case "rejeitar" -> Classificacao.REJEITAR;
+                case "ambientada" -> Classificacao.AMBIENTADA;
+                default -> Classificacao.LIMPA;
+            };
+            if (c == Classificacao.REJEITAR) {
                 log.info("Imagem descartada na verificação ({}): {}",
                         descricaoProduto, n.path("motivo").asText(""));
             }
-            //TODO Alterar ok, alterado para true só para teste
-//            return ok;
-            return true;
+            return c;
         } catch (Exception e) {
-            log.warn("Falha ao verificar imagem ({}): {} — mantendo a imagem sem verificação",
+            log.warn("Falha ao verificar imagem ({}): {} — mantendo com tratamento padrão",
                     descricaoProduto, mensagemCurta(e));
-            return true;
+            return Classificacao.LIMPA;
         }
     }
 
