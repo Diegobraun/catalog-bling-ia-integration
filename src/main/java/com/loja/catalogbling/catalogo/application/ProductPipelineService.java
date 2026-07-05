@@ -1,12 +1,15 @@
 package com.loja.catalogbling.catalogo.application;
 
 import com.loja.catalogbling.bling.infrastructure.BlingProductClient;
+import com.loja.catalogbling.bling.infrastructure.BlingProdutoMapper;
 import com.loja.catalogbling.ia.domain.ConteudoGerado;
 import com.loja.catalogbling.ia.application.ConteudoIaService;
 import com.loja.catalogbling.ia.domain.PesquisaDeProduto;
 import com.loja.catalogbling.ia.domain.PesquisaEntrada;
 import com.loja.catalogbling.ia.application.PesquisaProdutoIaService;
 import com.loja.catalogbling.ia.application.VerificacaoImagemIaService;
+import com.loja.catalogbling.catalogo.domain.Cor;
+import com.loja.catalogbling.catalogo.domain.EntradaDeBusca;
 import com.loja.catalogbling.catalogo.domain.Product;
 import com.loja.catalogbling.catalogo.domain.ProductImage;
 import com.loja.catalogbling.catalogo.domain.ProductStatus;
@@ -18,13 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 public class ProductPipelineService {
@@ -42,6 +42,7 @@ public class ProductPipelineService {
     private final ImageDownloadService downloads;
     private final VerificacaoImagemIaService verificacao;
     private final BlingProductClient bling;
+    private final BlingProdutoMapper blingMapper;
 
     public ProductPipelineService(ProductRepository repo,
                                   ConteudoIaService conteudo,
@@ -50,7 +51,8 @@ public class ProductPipelineService {
                                   ImageStorage storage,
                                   ImageDownloadService downloads,
                                   VerificacaoImagemIaService verificacao,
-                                  BlingProductClient bling) {
+                                  BlingProductClient bling,
+                                  BlingProdutoMapper blingMapper) {
         this.repo = repo;
         this.conteudo = conteudo;
         this.pesquisa = pesquisa;
@@ -59,6 +61,7 @@ public class ProductPipelineService {
         this.downloads = downloads;
         this.verificacao = verificacao;
         this.bling = bling;
+        this.blingMapper = blingMapper;
     }
 
     public Product criarPorPesquisa(PesquisaEntrada entrada) {
@@ -203,17 +206,7 @@ public class ProductPipelineService {
             return existente;
         }
         Map<String, Object> dados = bling.obterProduto(blingId);
-
-        Product produto = new Product();
-        produto.setBlingProductId(blingId);
-        produto.setTitulo(texto(dados.get("nome")));
-        produto.setEan(texto(dados.get("gtin")));
-        produto.setDescricaoCurta(texto(dados.get("descricaoCurta")));
-        produto.setDescricaoComplementar(texto(dados.get("descricaoComplementar")));
-        produto.setPreco(numero(dados.get("preco")));
-        produto.setDadosBrutos("Produto importado do Bling (ID " + blingId + "). "
-                + "Cole aqui a ficha técnica do fornecedor e clique em \"Gerar\" para reescrever o conteúdo.");
-        produto.setStatus(ProductStatus.PUBLICADO);
+        Product produto = blingMapper.paraProduto(blingId, dados);
         repo.save(produto);
         return produto;
     }
@@ -236,11 +229,12 @@ public class ProductPipelineService {
         }
         repo.save(produto);
 
-        String cor = corDoNome(nomeOuLink);
-        String descricao = descricaoImagem(produto, nomeOuLink);
+        EntradaDeBusca entrada = EntradaDeBusca.de(nomeOuLink);
+        Cor cor = entrada.cor();
+        String descricao = descricaoImagem(produto, entrada);
 
         List<String> paginas = new ArrayList<>();
-        String url = extrairUrl(nomeOuLink);
+        String url = entrada.url();
         if (url != null) {
             paginas.add(url);
         }
@@ -250,59 +244,17 @@ public class ProductPipelineService {
         }
 
         List<ImageDownloadService.ImagemBaixada> candidatas = downloads.baixarCandidatas(
-                resultado.imagens(), paginas, coresParaExcluir(cor),
+                resultado.imagens(), paginas, cor.tokensParaExcluir(),
                 MAX_IMAGENS_CANDIDATAS, MAX_IMAGENS_POR_PAGINA);
-        aplicarImagens(produto, candidatas, descricao, cor);
+        aplicarImagens(produto, candidatas, descricao, cor.valor());
     }
 
-    private static final Map<String, String> CORES = Map.ofEntries(
-            Map.entry("rosa", "rosa"), Map.entry("rose", "rosa"), Map.entry("pink", "rosa"),
-            Map.entry("preto", "preto"), Map.entry("black", "preto"),
-            Map.entry("grafite", "grafite"), Map.entry("graphite", "grafite"),
-            Map.entry("branco", "branco"), Map.entry("white", "branco"),
-            Map.entry("cinza", "cinza"), Map.entry("gray", "cinza"), Map.entry("grey", "cinza"),
-            Map.entry("prata", "prata"), Map.entry("silver", "prata"),
-            Map.entry("azul", "azul"), Map.entry("blue", "azul"),
-            Map.entry("vermelho", "vermelho"), Map.entry("red", "vermelho"),
-            Map.entry("verde", "verde"), Map.entry("green", "verde"),
-            Map.entry("amarelo", "amarelo"), Map.entry("yellow", "amarelo"));
-
-    private String consultaMarketplace(Product produto, String cor) {
+    private String consultaMarketplace(Product produto, Cor cor) {
         String base = java.util.stream.Stream.of(produto.getMarca(), produto.getModelo())
                 .filter(v -> v != null && !v.isBlank())
                 .map(String::strip)
                 .collect(java.util.stream.Collectors.joining(" "));
-        return cor == null || cor.isBlank() ? base : base + " " + cor;
-    }
-
-    private boolean ehLink(String texto) {
-        return texto != null && texto.strip().toLowerCase().startsWith("http");
-    }
-
-    private Set<String> coresParaExcluir(String cor) {
-        if (cor == null || cor.isBlank()) {
-            return Set.of();
-        }
-        Set<String> excluir = new HashSet<>();
-        for (Map.Entry<String, String> e : CORES.entrySet()) {
-            if (!e.getValue().equals(cor)) {
-                excluir.add(e.getKey());
-            }
-        }
-        return excluir;
-    }
-
-    private String corParaBusca(String texto) {
-        if (texto == null) {
-            return "";
-        }
-        for (String palavra : texto.toLowerCase().split("[^a-zà-ú]+")) {
-            String cor = CORES.get(palavra);
-            if (cor != null) {
-                return cor;
-            }
-        }
-        return "";
+        return cor.presente() ? base + " " + cor.valor() : base;
     }
 
     private void aplicarImagens(Product produto, List<ImageDownloadService.ImagemBaixada> candidatas,
@@ -321,40 +273,14 @@ public class ProductPipelineService {
         }
     }
 
-    private String descricaoImagem(Product produto, String nomeOuLink) {
-        if (nomeOuLink != null && !nomeOuLink.isBlank() && !ehLink(nomeOuLink)) {
-            return nomeOuLink.strip();
+    private String descricaoImagem(Product produto, EntradaDeBusca entrada) {
+        if (!entrada.ehLink() && !entrada.textoDigitado().isBlank()) {
+            return entrada.textoDigitado();
         }
         return java.util.stream.Stream.of(produto.getMarca(), produto.getModelo(), produto.getCategoria())
                 .filter(v -> v != null && !v.isBlank())
                 .map(String::strip)
                 .collect(java.util.stream.Collectors.joining(" "));
-    }
-
-    private String extrairUrl(String texto) {
-        if (texto == null) {
-            return null;
-        }
-        for (String token : texto.strip().split("\\s+")) {
-            if (token.toLowerCase().startsWith("http")) {
-                return token;
-            }
-        }
-        return null;
-    }
-
-    private String corDoNome(String nomeOuLink) {
-        if (nomeOuLink == null) {
-            return "";
-        }
-        StringBuilder digitado = new StringBuilder();
-        for (String token : nomeOuLink.strip().split("\\s+")) {
-            if (!token.toLowerCase().startsWith("http")) {
-                digitado.append(token).append(' ');
-            }
-        }
-        String cor = corParaBusca(digitado.toString());
-        return cor.isBlank() ? corParaBusca(nomeOuLink) : cor;
     }
 
     private void aplicar(Product produto, ConteudoGerado gerado) {
@@ -388,24 +314,5 @@ public class ProductPipelineService {
 
     private boolean vazio(String valor) {
         return valor == null || valor.isBlank();
-    }
-
-    private String texto(Object valor) {
-        if (valor == null) {
-            return null;
-        }
-        String s = String.valueOf(valor).trim();
-        return s.isEmpty() ? null : s;
-    }
-
-    private BigDecimal numero(Object valor) {
-        if (valor == null) {
-            return null;
-        }
-        try {
-            return new BigDecimal(String.valueOf(valor).trim().replace(",", "."));
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 }

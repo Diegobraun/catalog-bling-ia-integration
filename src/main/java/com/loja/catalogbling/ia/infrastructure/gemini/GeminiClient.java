@@ -2,7 +2,6 @@ package com.loja.catalogbling.ia.infrastructure.gemini;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.loja.catalogbling.config.GeminiProperties;
-import com.loja.catalogbling.ia.infrastructure.IaHttp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -17,12 +16,12 @@ import java.util.Map;
 public class GeminiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
-    private static final String BASE = "https://generativelanguage.googleapis.com/v1beta/models/";
 
-    private final RestClient http = IaHttp.clientePadrao();
+    private final RestClient http;
     private final GeminiProperties props;
 
-    public GeminiClient(GeminiProperties props) {
+    public GeminiClient(RestClient http, GeminiProperties props) {
+        this.http = http;
         this.props = props;
     }
 
@@ -41,7 +40,7 @@ public class GeminiClient {
         for (String modelo : modelos) {
             try {
                 return http.post()
-                        .uri(BASE + modelo + ":generateContent")
+                        .uri(props.baseUrl() + modelo + ":generateContent")
                         .header("x-goog-api-key", props.apiKey())
                         .header("Content-Type", "application/json")
                         .body(corpo)

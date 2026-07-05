@@ -3,7 +3,6 @@ package com.loja.catalogbling.ia.infrastructure.ollama;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.loja.catalogbling.config.OllamaProperties;
 import com.loja.catalogbling.ia.domain.ChatIa;
-import com.loja.catalogbling.ia.infrastructure.IaHttp;
 import com.loja.catalogbling.ia.domain.MensagemIa;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -18,10 +17,11 @@ import java.util.Map;
 @ConditionalOnProperty(name = "ia.provider", havingValue = "ollama")
 public class OllamaChat implements ChatIa {
 
-    private final RestClient http = IaHttp.clientePadrao();
+    private final RestClient http;
     private final OllamaProperties props;
 
-    public OllamaChat(OllamaProperties props) {
+    public OllamaChat(RestClient http, OllamaProperties props) {
+        this.http = http;
         this.props = props;
     }
 

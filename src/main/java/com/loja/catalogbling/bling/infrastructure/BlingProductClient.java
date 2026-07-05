@@ -2,6 +2,7 @@ package com.loja.catalogbling.bling.infrastructure;
 
 import com.loja.catalogbling.catalogo.domain.Product;
 import com.loja.catalogbling.catalogo.domain.ProductImage;
+import com.loja.catalogbling.config.BlingProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -15,20 +16,22 @@ import java.util.Map;
 @Service
 public class BlingProductClient {
 
-    private static final String BASE = "https://api.bling.com.br/Api/v3";
     private static final int LIMITE_BUSCA = 50;
 
-    private final RestClient http = RestClient.create();
+    private final RestClient http;
+    private final String base;
     private final BlingAuthService auth;
 
-    public BlingProductClient(BlingAuthService auth) {
+    public BlingProductClient(RestClient http, BlingProperties props, BlingAuthService auth) {
+        this.http = http;
+        this.base = props.apiBaseUrl();
         this.auth = auth;
     }
 
     @SuppressWarnings("unchecked")
     public String criarProduto(Product produto) {
         Map<String, Object> resposta = http.post()
-                .uri(BASE + "/produtos")
+                .uri(base + "/produtos")
                 .header("Authorization", bearer())
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
@@ -41,7 +44,7 @@ public class BlingProductClient {
     @SuppressWarnings("unchecked")
     public void atualizarProduto(String blingId, Product produto) {
         http.put()
-                .uri(BASE + "/produtos/" + blingId)
+                .uri(base + "/produtos/" + blingId)
                 .header("Authorization", bearer())
                 .header("Content-Type", "application/json")
                 .header("Accept", "application/json")
@@ -53,7 +56,7 @@ public class BlingProductClient {
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> listarProdutos(int pagina) {
         Map<String, Object> resposta = http.get()
-                .uri(BASE + "/produtos?pagina=" + Math.max(1, pagina) + "&limite=" + LIMITE_BUSCA)
+                .uri(base + "/produtos?pagina=" + Math.max(1, pagina) + "&limite=" + LIMITE_BUSCA)
                 .header("Authorization", bearer())
                 .header("Accept", "application/json")
                 .retrieve()
@@ -74,7 +77,7 @@ public class BlingProductClient {
     @SuppressWarnings("unchecked")
     public Map<String, Object> obterProduto(String blingId) {
         Map<String, Object> resposta = http.get()
-                .uri(BASE + "/produtos/" + blingId)
+                .uri(base + "/produtos/" + blingId)
                 .header("Authorization", bearer())
                 .header("Accept", "application/json")
                 .retrieve()
@@ -92,7 +95,7 @@ public class BlingProductClient {
         }
 
         Map<String, Object> resposta = http.get()
-                .uri(BASE + "/produtos?pagina=1&limite=" + LIMITE_BUSCA
+                .uri(base + "/produtos?pagina=1&limite=" + LIMITE_BUSCA
                         + "&nome=" + URLEncoder.encode(nome, StandardCharsets.UTF_8))
                 .header("Authorization", bearer())
                 .header("Accept", "application/json")

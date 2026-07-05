@@ -2,7 +2,6 @@ package com.loja.catalogbling.ia.infrastructure.claude;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.loja.catalogbling.config.AnthropicProperties;
-import com.loja.catalogbling.ia.infrastructure.IaHttp;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -14,10 +13,11 @@ public class AnthropicMessagesClient {
     private static final String ENDPOINT = "https://api.anthropic.com/v1/messages";
     private static final String VERSAO_API = "2023-06-01";
 
-    private final RestClient http = IaHttp.clientePadrao();
+    private final RestClient http;
     private final AnthropicProperties props;
 
-    public AnthropicMessagesClient(AnthropicProperties props) {
+    public AnthropicMessagesClient(RestClient http, AnthropicProperties props) {
+        this.http = http;
         this.props = props;
     }
 

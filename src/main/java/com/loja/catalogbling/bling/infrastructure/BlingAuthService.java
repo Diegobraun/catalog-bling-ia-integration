@@ -13,17 +13,19 @@ import java.util.Map;
 @Service
 public class BlingAuthService {
 
-    private static final String TOKEN_URL = "https://api.bling.com.br/Api/v3/oauth/token";
     private static final String AUTH_URL = "https://www.bling.com.br/Api/v3/oauth/authorize";
     private static final long TOKEN_ID = 1L;
     private static final long MARGEM_RENOVACAO_SEGUNDOS = 300;
     private static final long EXPIRACAO_PADRAO_SEGUNDOS = 21600;
 
-    private final RestClient http = RestClient.create();
+    private final RestClient http;
+    private final String tokenUrl;
     private final BlingTokenRepository repo;
     private final BlingProperties props;
 
-    public BlingAuthService(BlingTokenRepository repo, BlingProperties props) {
+    public BlingAuthService(RestClient http, BlingTokenRepository repo, BlingProperties props) {
+        this.http = http;
+        this.tokenUrl = props.apiBaseUrl() + "/oauth/token";
         this.repo = repo;
         this.props = props;
     }
@@ -57,7 +59,7 @@ public class BlingAuthService {
     @SuppressWarnings("unchecked")
     private Map<String, Object> requisitarTokens(String corpo) {
         return http.post()
-                .uri(TOKEN_URL)
+                .uri(tokenUrl)
                 .header("Authorization", basicAuthHeader())
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .body(corpo)

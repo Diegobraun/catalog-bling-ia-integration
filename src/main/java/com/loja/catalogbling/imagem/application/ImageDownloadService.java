@@ -178,7 +178,7 @@ public class ImageDownloadService {
         return filtrarCor(urls, coresExcluir);
     }
 
-    private void extrairDeHtml(String html, List<String> urls) {
+    void extrairDeHtml(String html, List<String> urls) {
         acumularGaleriaJsonLd(html, urls);
         for (Pattern padrao : META_IMAGEM) {
             acumular(padrao, html, urls);
@@ -210,7 +210,7 @@ public class ImageDownloadService {
             "banner", "/conteudo/"
     };
 
-    private List<String> filtrarCor(List<String> urls, Set<String> coresExcluir) {
+    List<String> filtrarCor(List<String> urls, Set<String> coresExcluir) {
         List<String> mantidas = new ArrayList<>();
         for (String url : urls) {
             if (!urlDescartavel(url, coresExcluir)) {

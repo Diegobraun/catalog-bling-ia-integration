@@ -80,12 +80,6 @@ public class Product {
         return imagens.stream().mapToInt(ProductImage::getOrdem).max().orElse(-1) + 1;
     }
 
-    public String getResumo() {
-        return java.util.stream.Stream.of(marca, modelo, categoria, sku)
-                .filter(v -> v != null && !v.isBlank())
-                .collect(java.util.stream.Collectors.joining(" · "));
-    }
-
     public Long getId() { return id; }
     public ProductStatus getStatus() { return status; }
     public void setStatus(ProductStatus status) { this.status = status; }
