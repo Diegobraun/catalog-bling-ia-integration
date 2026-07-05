@@ -28,8 +28,7 @@ public class ImageProcessingService {
     private static final float QUALIDADE_MAXIMA = 0.95f;
     private static final int ITERACOES_COMPRESSAO = 8;
 
-    public record Resultado(byte[] jpeg, int kb, int larguraOriginal, int alturaOriginal,
-                            double nitidez, boolean upscaleNecessario, boolean nitidezOk) {}
+    public record Resultado(byte[] jpeg, int kb, boolean upscaleNecessario, boolean nitidezOk) {}
 
     public Resultado processar(byte[] entrada) throws IOException {
         BufferedImage original = ImageIO.read(new ByteArrayInputStream(entrada));
@@ -44,8 +43,7 @@ public class ImageProcessingService {
 
         byte[] jpeg = comprimirAte(encaixarEmQuadradoBranco(original), LIMITE_BYTES);
 
-        return new Resultado(jpeg, jpeg.length / 1024, largura, altura,
-                nitidez, upscale, nitidez >= NITIDEZ_MINIMA);
+        return new Resultado(jpeg, jpeg.length / 1024, upscale, nitidez >= NITIDEZ_MINIMA);
     }
 
     private BufferedImage encaixarEmQuadradoBranco(BufferedImage origem) throws IOException {

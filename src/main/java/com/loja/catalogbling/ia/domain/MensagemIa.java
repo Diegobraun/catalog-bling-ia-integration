@@ -8,8 +8,4 @@ public record MensagemIa(String papel, String conteudo) {
     public static MensagemIa usuario(String conteudo) {
         return new MensagemIa(USUARIO, conteudo);
     }
-
-    public static MensagemIa assistente(String conteudo) {
-        return new MensagemIa(ASSISTENTE, conteudo);
-    }
 }

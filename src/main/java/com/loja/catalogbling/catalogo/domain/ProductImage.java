@@ -17,19 +17,16 @@ public class ProductImage {
     @Column(length = 1000)
     private String urlPublica;
     private Integer kb;
-    private Double nitidez;
     private Boolean aprovada;
     private int ordem;
 
     protected ProductImage() {
     }
 
-    public ProductImage(Product product, String urlPublica, Integer kb, Double nitidez,
-                        Boolean aprovada, int ordem) {
+    public ProductImage(Product product, String urlPublica, Integer kb, Boolean aprovada, int ordem) {
         this.product = product;
         this.urlPublica = urlPublica;
         this.kb = kb;
-        this.nitidez = nitidez;
         this.aprovada = aprovada;
         this.ordem = ordem;
     }
@@ -43,10 +40,8 @@ public class ProductImage {
     }
 
     public Long getId() { return id; }
-    public Product getProduct() { return product; }
     public String getUrlPublica() { return urlPublica; }
     public Integer getKb() { return kb; }
-    public Double getNitidez() { return nitidez; }
     public Boolean getAprovada() { return aprovada; }
     public int getOrdem() { return ordem; }
 }

@@ -55,7 +55,6 @@ public class ConteudoIaService {
                     n.path("descricaoComplementar").asText(),
                     n.path("descricaoCurta").asText(),
                     img.path("observacoes").asText(""),
-                    img.path("adequada").asBoolean(false),
                     texto);
         } catch (Exception e) {
             throw new IllegalStateException(

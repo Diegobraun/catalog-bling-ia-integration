@@ -104,8 +104,7 @@ public class ProductPipelineService {
         int ordem = produto.proximaOrdem();
         String url = storage.salvar(produto.getId(), ordem, resultado.jpeg());
         boolean aprovada = resultado.nitidezOk() && !resultado.upscaleNecessario();
-        produto.adicionarImagem(new ProductImage(produto, url, resultado.kb(),
-                resultado.nitidez(), aprovada, ordem));
+        produto.adicionarImagem(new ProductImage(produto, url, resultado.kb(), aprovada, ordem));
         repo.save(produto);
     }
 

@@ -5,7 +5,6 @@ import com.loja.catalogbling.bling.infrastructure.BlingAuthService;
 import com.loja.catalogbling.bling.infrastructure.BlingProductClient;
 import com.loja.catalogbling.catalogo.domain.Product;
 import com.loja.catalogbling.ia.domain.PesquisaEntrada;
-import com.loja.catalogbling.imagem.application.ImageProcessingService;
 import com.loja.catalogbling.catalogo.domain.ProductRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

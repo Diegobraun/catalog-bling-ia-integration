@@ -76,10 +76,6 @@ public class Product {
         return imagens.isEmpty() ? null : imagens.get(0);
     }
 
-    public boolean temImagem() {
-        return !imagens.isEmpty();
-    }
-
     public int proximaOrdem() {
         return imagens.stream().mapToInt(ProductImage::getOrdem).max().orElse(-1) + 1;
     }
@@ -125,5 +121,4 @@ public class Product {
     public String getErroPublicacao() { return erroPublicacao; }
     public void setErroPublicacao(String v) { this.erroPublicacao = v; }
     public List<ConversationTurn> getConversa() { return conversa; }
-    public Instant getCriadoEm() { return criadoEm; }
 }
