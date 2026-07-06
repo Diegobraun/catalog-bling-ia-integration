@@ -1,5 +1,8 @@
 # product-bling-ai-integrator
 
+![Java](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?logo=springboot&logoColor=white)
+
 Pipeline de cadastro de produtos para e-commerce: pesquisa com IA + Bling.
 
 Dashboard web em Spring Boot que, a partir do **nome de um produto** (ou de um
